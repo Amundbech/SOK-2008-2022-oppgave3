@@ -1,0 +1,42 @@
+options(encoding="UTF-8")
+
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(rjstat)
+library(httr)
+library(janitor)
+library(ggthemes)
+
+url <- "https://data.ssb.no/api/v0/no/table/11155/"
+
+data <- '
+{"query": [{"code": "Alder","selection": {"filter": "item","values": [
+          "20-64",
+          "15-24" ]}},{"code": "ContentsCode","selection": {"filter": "item",
+        "values": ["ArbLedigProsent"]}}],"response": {"format": "json-stat2"}}'
+
+d.tmp <- POST(url , body = data, encode = "json", verbose())
+
+table <- fromJSONstat(content(d.tmp, "text"))
+
+pivot_wider(table, by = år)
+
+alder <- table %>%
+  pivot_wider(names_from = alder, values_from = value)
+
+alder <- alder %>%
+  clean_names()
+
+
+alder %>%
+  ggplot(aes(x=ar)) +
+  geom_line(aes(y = x20_64_ar), color = "blue", group = 1) +
+  geom_line(aes(y = x15_24_ar), color = "red", group = 1) +
+  labs(title = "Arbeidsledighet",
+       x = "År", y="Arbeidsledighet") +
+  annotate("text", x=7, y=10, label= "15-24 år", color = "red") +
+  annotate("text", x=7, y=4, label= "20-64 år", color = "blue") +
+  theme_bw()
+
+
